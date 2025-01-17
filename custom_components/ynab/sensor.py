@@ -2,52 +2,113 @@
 import logging
 from homeassistant.helpers.entity import DeviceInfo
 
-from .const import (DOMAIN, CONF_ACCOUNTS_KEY, CONF_ACCOUNTS_ALL_KEY,
-                    CONF_BUDGET_KEY, CONF_CATEGORIES_KEY,
-                    CONF_CATEGORIES_ALL_KEY, CONF_BUDGET_NAME_KEY)
-from .sensors.balance_sensor import CategorySensor, AccountSensor
-from .sensors.budget_sensor import BudgetSensor
-from .api.data_coordinator import YnabDataCoordinator
+from .const import ACCOUNT_ERROR, CATEGORY_ERROR, DOMAIN_DATA, ICON, CONF_ACCOUNTS_KEY, CONF_BUDGET_KEY, CONF_CATEGORIES_KEY, CONF_CURRENCY_KEY, CONF_BUDGET_NAME_KEY
 
 _LOGGER = logging.getLogger(__name__)
+
 
 async def async_setup_entry(
     hass, config_entry, async_add_entities
 ):
     """Set up sensor platform."""
-    _LOGGER.debug("Setting up entities")
+    async_add_entities([ynabSensor(hass, config_entry.data)], True)
 
-    coordinator = YnabDataCoordinator(hass, config_entry.data)
-    await coordinator.async_config_entry_first_refresh()
 
-    budget_id = config_entry.data[CONF_BUDGET_KEY]
-    budget_name = config_entry.data[CONF_BUDGET_NAME_KEY]
-    device_info = DeviceInfo(
-        name=budget_name,
-        manufacturer=DOMAIN,
-        model="Budget",
-        via_device=(DOMAIN, budget_id),
-        identifiers={(DOMAIN, budget_id)}
-    )
+class ynabSensor(Entity):
+    """YNAB Sensor class."""
 
-    sensors = [BudgetSensor(coordinator, budget_id, budget_name, device_info)]
+    def __init__(self, hass, config):
+        """Init."""
+        self.hass = hass
+        self.attr = {}
+        self._state = None
+        self._attr_unique_id = config[CONF_BUDGET_KEY]
+        self._name = config[CONF_BUDGET_NAME_KEY]
+        self._measurement = config[CONF_CURRENCY_KEY]
+        self._categories = config[CONF_CATEGORIES_KEY]
+        self._accounts = config[CONF_ACCOUNTS_KEY]
 
-    categories = []
-    if config_entry.data[CONF_CATEGORIES_ALL_KEY]:
-        categories = coordinator.data.categories.keys()
-    elif CONF_CATEGORIES_KEY in config_entry.data:
-        categories = config_entry.data[CONF_CATEGORIES_KEY]
+    async def async_update(self):
+        """Update the sensor."""
+        await self.hass.data[DOMAIN_DATA]["client"].update_data()
 
-    for category in categories:
-        sensors.append(CategorySensor(coordinator, category_id=category, device_info=device_info, budget_name=budget_name))
+        to_be_budgeted = self.hass.data[DOMAIN_DATA].get("to_be_budgeted")
 
-    accounts = []
-    if config_entry.data[CONF_ACCOUNTS_ALL_KEY]:
-        accounts = coordinator.data.accounts.keys()
-    elif CONF_ACCOUNTS_KEY in config_entry.data:
-        accounts = config_entry.data[CONF_ACCOUNTS_KEY]
+        if to_be_budgeted is not None:
+            self._state = to_be_budgeted
 
-    for account in accounts:
-        sensors.append(AccountSensor(coordinator, account_id=account, device_info=device_info, budget_name=budget_name))
+        # set attributes
+        self.attr["budgeted_this_month"] = self.hass.data[DOMAIN_DATA].get(
+            "budgeted_this_month"
+        )
 
-    async_add_entities(sensors, update_before_add=True)
+        self.attr["activity_this_month"] = self.hass.data[DOMAIN_DATA].get(
+            "activity_this_month"
+        )
+        self.attr["age_of_money"] = self.hass.data[DOMAIN_DATA].get("age_of_money")
+
+        self.attr["total_balance"] = self.hass.data[DOMAIN_DATA].get("total_balance")
+
+        self.attr["need_approval"] = self.hass.data[DOMAIN_DATA].get("need_approval")
+
+        self.attr["uncleared_transactions"] = self.hass.data[DOMAIN_DATA].get(
+            "uncleared_transactions"
+        )
+
+        self.attr["overspent_categories"] = self.hass.data[DOMAIN_DATA].get(
+            "overspent_categories"
+        )
+
+        # category attributes
+        if self._categories is not None:
+            for category in self._categories:
+                if self.hass.data[DOMAIN_DATA].get(category) is not None:
+                    self.attr[category.replace(" ", "_").lower()] = self.hass.data[
+                        DOMAIN_DATA
+                    ].get(category)
+                    self.attr[
+                        (category + "_budgeted").replace(" ", "_").lower()
+                    ] = self.hass.data[DOMAIN_DATA].get(category + "_budgeted")
+                else:
+                    category_error = CATEGORY_ERROR.format(category=category)
+                    _LOGGER.error(category_error)
+
+        if self._accounts is not None:
+            for account in self._accounts:
+                if self.hass.data[DOMAIN_DATA].get(account) is not None:
+                    self.attr[account.replace(" ", "_").lower()] = self.hass.data[
+                        DOMAIN_DATA
+                    ].get(account)
+                else:
+                    account_error = ACCOUNT_ERROR.format(account=account)
+                    _LOGGER.error(account_error)
+
+    @property
+    def should_poll(self):
+        """Return the name of the sensor."""
+        return True
+
+    @property
+    def name(self):
+        """Return the name of the sensor."""
+        return self._name
+
+    @property
+    def state(self):
+        """Return the state of the sensor."""
+        return self._state
+
+    @property
+    def unit_of_measurement(self):
+        """Return the unit of measurement of the sensor."""
+        return self._measurement
+
+    @property
+    def icon(self):
+        """Return the icon of the sensor."""
+        return ICON
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes."""
+        return self.attr

@@ -26,17 +26,15 @@
         "title": "Categories",
         "description": "Add any categories you want to sync",
         "data": {
-          "categories": "Categories to sync",
-          "categories_include_all": "Sync all categories"
+          "categories": "Categories to sync"
         }
       },
       "accounts": {
         "title": "Accounts",
         "description": "Add any accounts you want to sync",
         "data": {
-          "accounts": "Accounts to sync",
+          "accounts": "Accounts to sync"
           "accounts_include_all": "Sync all accounts"
-
         }
       }
     }
