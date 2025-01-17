@@ -34,6 +34,7 @@
         "description": "Add any accounts you want to sync",
         "data": {
           "accounts": "Accounts to sync"
+          "accounts_include_all": "Sync all accounts"
         }
       }
     }

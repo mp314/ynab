@@ -12,23 +12,20 @@ from homeassistant.const import CONF_API_KEY
 from homeassistant.helpers import discovery
 from homeassistant.util import Throttle
 from ynab_sdk import YNAB
+from ynab_sdk.api.models.responses.budget_detail import BudgetDetailResponse, Budget
 
 from .const import (
     CONF_NAME,
     CONF_BUDGET_KEY,
     CONF_CATEGORIES_KEY,
     CONF_ACCOUNTS_KEY,
-
     DEFAULT_API_ENDPOINT,
     DOMAIN,
-    DOMAIN_DATA,
     ISSUE_URL,
     REQUIRED_FILES,
     STARTUP,
     VERSION,
 )
-
-MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=300)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -46,9 +43,6 @@ async def async_setup_entry(hass, entry):
     url_check = await check_url()
     if not url_check:
         return False
-
-    # create data dictionary
-    hass.data[DOMAIN_DATA] = {}
 
     # get global config
     budget = entry.data[CONF_BUDGET_KEY]
@@ -69,7 +63,6 @@ async def async_setup_entry(hass, entry):
     )
 
     return True
-
 
 class YnabData:
     """This class handles communication and data for YNAB integration."""
