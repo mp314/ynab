@@ -19,7 +19,7 @@ To keep api usage low, the sensor updates every 5 minutes.
 ### HACS
 
 1. Open HACS > Settings
-2. In ADD CUSTOM REPOSITORY box paste this git's URL <https://github.com/wxt9861/ynab> and select type Integration
+2. In ADD CUSTOM REPOSITORY box paste this git's URL <https://github.com/mp314/ynab> and select type Integration
 3. Click INSTALL
 4. Make necessary modifications to your configuration.yaml
 5. Restart Home Assistant
