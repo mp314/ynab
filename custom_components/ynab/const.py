@@ -37,3 +37,5 @@ CONF_BUDGET_NAME_KEY = "budget_name"
 CONF_CATEGORIES_KEY = "categories"
 CONF_ACCOUNTS_KEY = "accounts"
 CONF_CURRENCY_KEY = "currency"
+
+MIN_TIME_BETWEEN_UPDATES = 10
